@@ -1,0 +1,16 @@
+
+Conclusiones ETL
+
+.Estamos ante una base de datos bastante amplia con alrededor de 100 mil ordenes, se encuentra estructurada en 9 datasets y cada uno está conformado por su respectiva tabla, lo cual brinda muchísimas posibilidades al momento de analizar la información de acuerdo con el objetivo que se quiera plantear.
+De acuerdo al objetivo del proyecto, de los 9 datasets se tomaron en cuenta 6 datasets: 
+olist_customers_dataset
+olist_order_items_dataset
+olist_order_payments_dataset
+olist_order_reviews_dataset
+olist_orders_dataset
+olist_products_dataset
+
+
+.En general, se trata de una base de datos limpia, ya que no fue necesario eliminar duplicados y presenta un porcentaje muy bajo de datos nulos. No se detectaron errores ortográficos en los valores de sus columnas y en la mayoría de los casos, las columnas presentan el tipo de dato correcto.
+
+.Finalmente, se seleccionaron las columnas que se consideran claves para el análisis y el posterior modelado, teniendo en cuenta el objetivo propuesto inicialmente.
