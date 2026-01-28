@@ -458,10 +458,33 @@ print(f"Probabilidad: {probability:.2%}")
 - **Correlación débil precio-satisfacción**: El precio no determina la satisfacción
 
 ### Del Modelo
-1. **XGBoost** captura el 99.4% de oportunidades de venta
-2. **Dashboard** democratiza el acceso a las recomendaciones
-3. **Arquitectura** lista para producción
-4. **Impacto medible** en métricas de negocio
+1. **XGBoost**
+   a. *Exactitud (0.772)*
+       77% de todas las predicciones son correctas
+       De cada 100 recomendaciones, 77 están bien y 23 mal
+      
+   b. *Precisión (0.774)*
+       Cuando el modelo dice "recomienda esto", 77% de las veces acierta
+       De cada 100 cosas que recomienda, 77 son realmente buenas
+        
+   c.  *Recall (0.994)*
+       El modelo detecta casi todo lo bueno (99.4%)
+       De cada 100 productos que debería recomendar, encuentra 99
+       Muy bueno para no perderse oportunidades
+
+   d. *F1-Score (0.871)*
+      Equilibrio entre precisión y recall (escala 0-1)
+      0.871 es un buen puntaje general
+
+   e. *ROC-AUC (0.615)*
+      Capacidad para distinguir entre bueno y malo
+      0.615 es moderado: mejor que adivinar (0.5) pero no excelente
+   
+3. **Dashboard** democratiza el acceso a las recomendaciones
+  
+4. **Arquitectura** lista para producción
+  
+5. **Impacto medible** en métricas de negocio
 
 ---
 
