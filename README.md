@@ -496,7 +496,7 @@ print(f"Probabilidad: {probability:.2%}")
 | Alejandro Carrillo Vázquez | [@Tomsakoch0605](https://github.com/Tomsakoch0605) | [LinkedIn](https://www.linkedin.com/in/michel-alejandro-carrillo-vázquez-93658977) |
 | Santiago Joaquín Mozo | [@SJMozo](https://github.com/SJMozo) | [LinkedIn](https://www.linkedin.com/in/santiago-joaquín-m-83323a37a) |
 | José Ramírez Montoya | [@JoseMontoya21](https://github.com/JoseMontoya21) | [LinkedIn](https://www.linkedin.com/in/jose-montoya-03696321a/) |
-| Manuel Eduardo Tobar Barreto | [@Mtobar23](https://github.com/Mtobar23) | [LinkedIn](https://https://www.linkedin.com/in/manueltobar/) |
+| Manuel Eduardo Tobar Barreto | [@Mtobar23](https://github.com/Mtobar23) | [LinkedIn](https://www.linkedin.com/in/manueltobar/) |
 
 📧 **Contacto**: infodatateam@DataVivaConsulting.com
 
