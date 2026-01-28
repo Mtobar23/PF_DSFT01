@@ -22,6 +22,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Inicializar estado del umbral
+if 'threshold' not in st.session_state:
+    st.session_state.threshold = 0.5
+
 # Estilos CSS
 st.markdown("""
 <style>
@@ -55,6 +59,13 @@ st.markdown("""
         width: 100%;
         font-weight: bold;
     }
+    .threshold-indicator {
+        padding: 0.5rem;
+        border-radius: 5px;
+        margin: 0.5rem 0;
+        text-align: center;
+        font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,7 +74,7 @@ st.markdown('<h1 class="main-title">🛒 Sistema de Recomendación Olist</h1>', 
 
 # Sidebar
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2231/2231692.png", width=80)
+    st.image("Olist_icon.jpeg", width=80)
     st.title("⚙️ Configuración")
     
     # Selección de modo
@@ -91,10 +102,67 @@ with st.sidebar:
             st.info(f"**Fecha entrenamiento:** {metadata['training_date']}")
             st.info(f"**F1-Score:** {metadata['performance']['f1_score']:.3f}")
             st.info(f"**Exactitud:** {metadata['performance']['accuracy']:.3f}")
+            
+            # Mostrar umbral óptimo si existe
+            if 'best_threshold' in metadata:
+                st.info(f"**Umbral óptimo:** {metadata['best_threshold']:.3f}")
         else:
             st.warning("Metadatos no encontrados")
     except Exception as e:
         st.error(f"Error: {e}")
+    
+    st.divider()
+    
+    # CONTROL DE UMBRAL
+    st.subheader("🎚️ Control de Umbral")
+    
+    # Cargar el mejor umbral del modelo si existe
+    try:
+        if metadata_path.exists():
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+            best_threshold = metadata.get('best_threshold', 0.5)
+        else:
+            best_threshold = 0.5
+    except:
+        best_threshold = 0.5
+    
+    # Slider de umbral
+    threshold = st.slider(
+        "Umbral de decisión",
+        min_value=0.1,
+        max_value=0.9,
+        value=st.session_state.threshold,
+        step=0.05,
+        key='threshold_slider',
+        help="""Ajusta el umbral para las predicciones:
+        • < 0.5: Más sensible (recomienda más productos)
+        • > 0.5: Más estricto (recomienda menos productos)
+        • 0.5: Valor por defecto"""
+    )
+    
+    # Actualizar el estado
+    st.session_state.threshold = threshold
+    
+    # Mostrar indicador visual del umbral
+    if threshold < 0.4:
+        st.markdown(
+            f'<div class="threshold-indicator" style="background-color: #FCA5A5; color: #7F1D1D;">'
+            f'⚠️ Umbral BAJO ({threshold:.2f}) - Muy sensible</div>',
+            unsafe_allow_html=True
+        )
+    elif threshold < 0.6:
+        st.markdown(
+            f'<div class="threshold-indicator" style="background-color: #FDE68A; color: #92400E;">'
+            f'⚖️ Umbral MODERADO ({threshold:.2f}) - Balanceado</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f'<div class="threshold-indicator" style="background-color: #A7F3D0; color: #065F46;">'
+            f'✅ Umbral ALTO ({threshold:.2f}) - Muy estricto</div>',
+            unsafe_allow_html=True
+        )
     
     st.divider()
     
@@ -107,6 +175,8 @@ with st.sidebar:
         - **Características del producto:** precio, categoría
         - **Datos del cliente:** estado, región
         - **Información de compra:** fecha, hora, método de pago
+        
+        **Umbral ajustable:** Controla la sensibilidad de las recomendaciones
         
         **Modelo:** XGBoost entrenado con datos históricos de Olist
         **Precisión:** 77%
@@ -145,8 +215,8 @@ class PredictionSystem:
             st.sidebar.error(f"Error cargando modelo: {e}")
             return False
     
-    def predict_local(self, input_data):
-        """Predicción usando modelo local"""
+    def predict_local(self, input_data, custom_threshold=0.5):
+        """Predicción usando modelo local con umbral personalizable"""
         try:
             # Convertir a DataFrame
             df = pd.DataFrame([input_data])
@@ -163,18 +233,20 @@ class PredictionSystem:
             # Preprocesar
             X = self.preprocessor.transform(df)
             
-            # Predecir
-            prediction = self.model.predict(X)[0]
+            # Obtener probabilidad
             probability = self.model.predict_proba(X)[0][1]
             
+            # Aplicar umbral personalizado
+            prediction = 1 if probability >= custom_threshold else 0
+            
             # Determinar confianza
-            if probability > 0.8:
+            if probability >= 0.8:
                 confidence = "Muy Alta"
-            elif probability > 0.7:
+            elif probability >= 0.7:
                 confidence = "Alta"
-            elif probability > 0.6:
+            elif probability >= 0.6:
                 confidence = "Moderada"
-            elif probability > 0.5:
+            elif probability >= 0.5:
                 confidence = "Baja"
             else:
                 confidence = "Muy Baja"
@@ -183,15 +255,33 @@ class PredictionSystem:
                 'prediction': int(prediction),
                 'probability': float(probability),
                 'recommend': bool(prediction),
-                'confidence': confidence
+                'confidence': confidence,
+                'threshold_used': custom_threshold
             }
         except Exception as e:
             st.error(f"Error en predicción: {e}")
             return None
     
+    def predict_local_batch(self, data_list, custom_threshold=0.5):
+        """Predicción por lotes con umbral personalizable"""
+        predictions = []
+        probabilities = []
+        confidences = []
+        
+        for data in data_list:
+            result = self.predict_local(data, custom_threshold)
+            if result:
+                predictions.append(result['recommend'])
+                probabilities.append(result['probability'])
+                confidences.append(result.get('confidence', 'N/A'))
+        
+        return predictions, probabilities, confidences
+    
     def predict_api(self, input_data):
         """Predicción usando API"""
         try:
+            # Incluir umbral en la solicitud
+            input_data['threshold'] = st.session_state.threshold
             response = requests.post(
                 f"{self.api_url}/predict",
                 json=input_data,
@@ -267,6 +357,10 @@ with tab1:
                    "Viernes": 4, "Sábado": 5, "Domingo": 6}
     weekday_num = weekday_map[weekday]
     
+    # Mostrar umbral actual
+    st.info(f"**Umbral actual:** {st.session_state.threshold:.2f} - "
+            f"{'Muy sensible' if st.session_state.threshold < 0.4 else 'Moderado' if st.session_state.threshold < 0.6 else 'Estricto'}")
+    
     # Botón de predicción
     if st.button("🎯 Predecir Recomendación", type="primary", use_container_width=True):
         # Preparar datos
@@ -285,11 +379,11 @@ with tab1:
         }
         
         # Realizar predicción
-        with st.spinner("Realizando predicción..."):
+        with st.spinner(f"Realizando predicción (umbral={st.session_state.threshold:.2f})..."):
             if mode == "API FastAPI":
                 result = predictor.predict_api(data)
             else:
-                result = predictor.predict_local(data)
+                result = predictor.predict_local(data, custom_threshold=st.session_state.threshold)
         
         if result:
             # Mostrar resultados
@@ -300,43 +394,53 @@ with tab1:
                 color = "#10B981"
                 icon = "✅"
                 title = "RECOMENDAR PRODUCTO"
-                message = "Este producto tiene alta probabilidad de recibir una reseña positiva (score ≥ 4)"
+                message = "Este producto supera el umbral de probabilidad"
             else:
                 color = "#EF4444"
                 icon = "❌"
                 title = "NO RECOMENDAR PRODUCTO"
-                message = "Este producto tiene baja probabilidad de recibir una reseña positiva"
+                message = "Este producto no supera el umbral de probabilidad"
             
             st.markdown(f"""
             <div style="background: {color}; color: white; padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
                 <h3 style="margin: 0; color: white;">{icon} {title}</h3>
                 <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">{message}</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">
+                    Umbral usado: {result.get('threshold_used', st.session_state.threshold):.2f}
+                </p>
             </div>
             """, unsafe_allow_html=True)
             
             # Métricas
-            col_metric1, col_metric2, col_metric3 = st.columns(3)
+            col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
             
             with col_metric1:
                 st.metric(
                     "Probabilidad",
                     f"{result['probability']:.1%}",
-                    delta=f"Confianza: {result.get('confidence', 'N/A')}"
+                    delta=f"vs umbral {result.get('threshold_used', 0.5):.2f}"
                 )
             
             with col_metric2:
+                diff = result['probability'] - result.get('threshold_used', st.session_state.threshold)
+                st.metric(
+                    "Diferencia",
+                    f"{diff:+.2%}",
+                    delta="Supera umbral" if diff >= 0 else "No supera"
+                )
+            
+            with col_metric3:
                 st.metric(
                     "Recomendación",
                     "Sí" if result['recommend'] else "No",
                     delta="Recomendado" if result['recommend'] else "No recomendado"
                 )
             
-            with col_metric3:
-                pred_value = result['prediction']
+            with col_metric4:
                 st.metric(
-                    "Valor Predicho",
-                    pred_value,
-                    delta="Positivo" if pred_value == 1 else "Negativo"
+                    "Confianza",
+                    result['confidence'],
+                    delta="Alta" if result['confidence'] in ['Alta', 'Muy Alta'] else "Baja"
                 )
             
             # Visualizaciones
@@ -345,7 +449,7 @@ with tab1:
             col_viz1, col_viz2 = st.columns(2)
             
             with col_viz1:
-                # Gauge de probabilidad
+                # Gauge de probabilidad con umbral
                 fig_gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=result['probability'] * 100,
@@ -362,7 +466,7 @@ with tab1:
                         'threshold': {
                             'line': {'color': "black", 'width': 4},
                             'thickness': 0.75,
-                            'value': 70
+                            'value': result.get('threshold_used', 0.5) * 100
                         }
                     }
                 ))
@@ -370,35 +474,49 @@ with tab1:
                 st.plotly_chart(fig_gauge, use_container_width=True)
             
             with col_viz2:
-                # Gráfico de importancia de características (ejemplo)
-                feature_data = {
-                    'Característica': ['Precio', 'Categoría', 'Región', 'Método Pago', 'Hora', 'Estado'],
-                    'Importancia': [0.25, 0.20, 0.15, 0.15, 0.10, 0.15]
+                # Gráfico de comparación con umbral
+                threshold_value = result.get('threshold_used', st.session_state.threshold)
+                comparison_data = {
+                    'Métrica': ['Probabilidad', 'Umbral'],
+                    'Valor': [result['probability'], threshold_value]
                 }
-                df_features = pd.DataFrame(feature_data)
+                df_comparison = pd.DataFrame(comparison_data)
                 
                 fig_bar = px.bar(
-                    df_features,
-                    x='Importancia',
-                    y='Característica',
-                    orientation='h',
-                    color='Importancia',
-                    color_continuous_scale='Blues',
-                    title="Importancia Relativa de Características"
+                    df_comparison,
+                    x='Métrica',
+                    y='Valor',
+                    color='Métrica',
+                    color_discrete_map={
+                        'Probabilidad': color,
+                        'Umbral': '#6B7280'
+                    },
+                    text='Valor',
+                    title="Comparación con Umbral"
                 )
+                fig_bar.update_traces(texttemplate='%{text:.2%}', textposition='outside')
                 fig_bar.update_layout(height=300)
+                fig_bar.add_hline(
+                    y=threshold_value,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text=f"Umbral: {threshold_value:.2%}",
+                    annotation_position="top right"
+                )
                 st.plotly_chart(fig_bar, use_container_width=True)
             
             # Resumen de datos
-            with st.expander("📝 Ver datos ingresados"):
-                st.json(data)
+            with st.expander("📝 Ver datos ingresados y resultado completo"):
+                st.json(result)
 
 # TAB 2: Predicción por lotes
 with tab2:
     st.markdown('<h2 class="section-header">Predicción por Lotes</h2>', unsafe_allow_html=True)
     
-    st.markdown("""
+    st.markdown(f"""
     Sube un archivo CSV con múltiples productos para obtener predicciones en lote.
+    
+    **Umbral actual:** {st.session_state.threshold:.2f}
     
     **Formato requerido:** El CSV debe contener las siguientes columnas:
     - `order_number` (entero)
@@ -445,10 +563,10 @@ with tab2:
                     if mode == "API FastAPI":
                         # Para modo API
                         try:
-                            with st.spinner("Enviando datos a la API..."):
+                            with st.spinner(f"Enviando datos a la API (umbral={st.session_state.threshold:.2f})..."):
                                 response = requests.post(
                                     f"{api_url}/predict-batch",
-                                    json={"data": data_list},
+                                    json={"data": data_list, "threshold": st.session_state.threshold},
                                     timeout=30
                                 )
                                 
@@ -472,23 +590,9 @@ with tab2:
                             st.error(f"Error con la API: {e}")
                     else:
                         # Para modo local
-                        predictions = []
-                        probabilities = []
-                        confidences = []
-                        
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
-                        for i, data in enumerate(data_list):
-                            status_text.text(f"Procesando registro {i+1}/{len(data_list)}...")
-                            result = predictor.predict_local(data)
-                            
-                            if result:
-                                predictions.append(result['recommend'])
-                                probabilities.append(result['probability'])
-                                confidences.append(result.get('confidence', 'N/A'))
-                            
-                            progress_bar.progress((i + 1) / len(data_list))
+                        predictions, probabilities, confidences = predictor.predict_local_batch(
+                            data_list, custom_threshold=st.session_state.threshold
+                        )
                         
                         # Agregar resultados al DataFrame
                         df['prediction'] = predictions
@@ -496,39 +600,85 @@ with tab2:
                         df['confidence'] = confidences
                         df['recommend'] = df['prediction'].map({True: '✅ Sí', False: '❌ No'})
                         
-                        st.success(f"✅ {len(df)} predicciones completadas localmente")
+                        st.success(f"✅ {len(df)} predicciones completadas (umbral={st.session_state.threshold:.2f})")
                     
                     # Mostrar resumen
                     if 'prediction' in df.columns:
-                        col_sum1, col_sum2, col_sum3 = st.columns(3)
+                        col_sum1, col_sum2, col_sum3, col_sum4 = st.columns(4)
                         
                         with col_sum1:
                             recommend_count = df['prediction'].sum()
-                            st.metric("Recomendados", f"{recommend_count}/{len(df)}")
+                            st.metric(
+                                "Recomendados", 
+                                f"{recommend_count}/{len(df)}",
+                                f"{recommend_count/len(df):.1%} del total"
+                            )
                         
                         with col_sum2:
                             avg_prob = df['probability'].mean()
-                            st.metric("Probabilidad Promedio", f"{avg_prob:.1%}")
+                            st.metric(
+                                "Probabilidad Promedio", 
+                                f"{avg_prob:.1%}",
+                                f"vs umbral {st.session_state.threshold:.2f}"
+                            )
                         
                         with col_sum3:
                             if 'confidence' in df.columns:
                                 high_conf = sum(1 for c in df['confidence'] if c in ['Alta', 'Muy Alta'])
                                 st.metric("Alta Confianza", high_conf)
                         
+                        with col_sum4:
+                            threshold_success = sum(1 for p in df['probability'] if p >= st.session_state.threshold)
+                            st.metric(
+                                "Superan Umbral",
+                                f"{threshold_success}/{len(df)}",
+                                f"Umbral: {st.session_state.threshold:.2f}"
+                            )
+                        
                         # Descargar resultados
                         csv = df.to_csv(index=False)
                         st.download_button(
                             label="📥 Descargar Resultados CSV",
                             data=csv,
-                            file_name=f"predicciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv"
+                            file_name=f"predicciones_umbral{st.session_state.threshold:.2f}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            help="Descarga los resultados con todas las predicciones"
                         )
                         
                         # Mostrar tabla de resultados
                         with st.expander("📊 Ver todas las predicciones"):
                             display_cols = ['product_category_name', 'price', 'customer_state', 
                                           'probability', 'confidence', 'recommend']
-                            st.dataframe(df[display_cols])
+                            st.dataframe(df[display_cols].head(20))
+                        
+                        # Gráfico de distribución de probabilidades
+                        st.markdown("#### 📊 Distribución de Probabilidades")
+                        
+                        fig_dist = px.histogram(
+                            df, 
+                            x='probability',
+                            nbins=20,
+                            title=f'Distribución de Probabilidades (Umbral: {st.session_state.threshold:.2f})',
+                            labels={'probability': 'Probabilidad', 'count': 'Cantidad'},
+                            color_discrete_sequence=['#3B82F6']
+                        )
+                        
+                        # Añadir línea del umbral
+                        fig_dist.add_vline(
+                            x=st.session_state.threshold,
+                            line_dash="dash",
+                            line_color="red",
+                            annotation_text=f"Umbral: {st.session_state.threshold:.2f}",
+                            annotation_position="top right"
+                        )
+                        
+                        fig_dist.update_layout(
+                            xaxis_title="Probabilidad",
+                            yaxis_title="Cantidad de Productos",
+                            showlegend=False
+                        )
+                        
+                        st.plotly_chart(fig_dist, use_container_width=True)
         
         except Exception as e:
             st.error(f"❌ Error procesando archivo: {e}")
@@ -552,6 +702,11 @@ with tab3:
             
             for key, value in info_data.items():
                 st.markdown(f"**{key}:** {value}")
+            
+            # Mostrar umbral óptimo si existe
+            if 'best_threshold' in predictor.metadata:
+                st.markdown(f"**Umbral óptimo:** {predictor.metadata['best_threshold']:.3f}")
+                st.caption(f"Umbral actual en uso: {st.session_state.threshold:.3f}")
         
         with col_info2:
             st.markdown("#### Métricas de Rendimiento")
@@ -607,6 +762,36 @@ with tab3:
             st.markdown("**Categóricas:**")
             for feat in predictor.metadata['features']['categorical']:
                 st.markdown(f"- {feat}")
+        
+        # Información sobre el umbral
+        st.markdown("#### 🎚️ Información sobre el Umbral")
+        
+        col_umb1, col_umb2 = st.columns(2)
+        
+        with col_umb1:
+            st.markdown("**Efecto del umbral:**")
+            st.markdown("""
+            - **Umbral bajo (< 0.5):** Más productos recomendados
+            - **Umbral medio (0.5):** Balance recomendado
+            - **Umbral alto (> 0.5):** Solo productos de alta calidad
+            """)
+        
+        with col_umb2:
+            if 'best_threshold' in predictor.metadata:
+                optimal_threshold = predictor.metadata['best_threshold']
+                st.markdown(f"**Umbral óptimo del modelo:** `{optimal_threshold:.3f}`")
+                st.progress(optimal_threshold, text=f"Posición del umbral óptimo")
+                
+                # Comparación con umbral actual
+                current = st.session_state.threshold
+                difference = current - optimal_threshold
+                
+                if abs(difference) < 0.05:
+                    st.success(f"✅ Umbral actual cercano al óptimo (diferencia: {difference:.3f})")
+                elif difference > 0:
+                    st.warning(f"⚠️ Umbral actual más estricto que el óptimo (diferencia: +{difference:.3f})")
+                else:
+                    st.warning(f"⚠️ Umbral actual más sensible que el óptimo (diferencia: {difference:.3f})")
     
     else:
         st.warning("No se encontró información del modelo. Carga los metadatos para ver las métricas.")
@@ -617,9 +802,9 @@ st.markdown(
     """
     <div style='text-align: center; color: #6B7280; padding: 1rem;'>
         <p>🛍️ Sistema de Recomendación de Productos Olist • Proyecto Final Data Science</p>
-        <p>📧 Contacto: infodatateam@DataVivaConsulting.com • 📅 {}</p>
+        <p>🎚️ Umbral ajustable: {:.2f} • 📅 {}</p>
     </div>
-    """.format(datetime.now().strftime("%Y")),
+    """.format(st.session_state.threshold, datetime.now().strftime("%Y")),
     unsafe_allow_html=True
 )
 
@@ -631,19 +816,26 @@ with st.expander("📋 Instrucciones de Ejecución"):
     1. **Modo Local (Recomendado):**
        - Asegúrate de que los archivos del modelo estén en `exported_model/`
        - Selecciona "Modelo Local" en la barra lateral
+       - Ajusta el umbral según necesites
        - Usa las pestañas para hacer predicciones
     
     2. **Modo API:**
-       - Primero ejecuta el servidor FastAPI (crea un archivo api_server.py)
+       - Primero ejecuta el servidor FastAPI
        - En la barra lateral, selecciona "API FastAPI"
        - Ingresa la URL de la API (por defecto: http://localhost:8000)
     
-    3. **Requerimientos:**
+    3. **Control de Umbral:**
+       - Usa el slider en la barra lateral para ajustar la sensibilidad
+       - Umbral bajo (< 0.5): Más recomendaciones
+       - Umbral alto (> 0.5): Menos pero más seguras
+       - El modelo tiene un umbral óptimo que se muestra automáticamente
+    
+    4. **Requerimientos:**
     ```bash
     pip install streamlit pandas numpy plotly requests scikit-learn xgboost
     ```
     
-    4. **Ejecutar Streamlit:**
+    5. **Ejecutar Streamlit:**
     ```bash
     streamlit run Dashboard.py
     ```
