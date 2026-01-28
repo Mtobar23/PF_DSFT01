@@ -459,6 +459,7 @@ print(f"Probabilidad: {probability:.2%}")
 
 ### Del Modelo
 1. **XGBoost**
+
    a. *Exactitud (0.772)*
        77% de todas las predicciones son correctas
        De cada 100 recomendaciones, 77 están bien y 23 mal
@@ -480,11 +481,11 @@ print(f"Probabilidad: {probability:.2%}")
       Capacidad para distinguir entre bueno y malo
       0.615 es moderado: mejor que adivinar (0.5) pero no excelente
    
-3. **Dashboard** democratiza el acceso a las recomendaciones
+2. **Dashboard** democratiza el acceso a las recomendaciones
   
-4. **Arquitectura** lista para producción
+3. **Arquitectura** lista para producción
   
-5. **Impacto medible** en métricas de negocio
+4. **Impacto medible** en métricas de negocio
 
 ---
 
