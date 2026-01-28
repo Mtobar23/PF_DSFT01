@@ -19,10 +19,10 @@ Sistema de Machine Learning para predecir si un producto recibirá una reseña p
 
 | Integrante | Rol |
 |------------|-----|
-| **Alejandro Carrillo Vásquez** | Data Scientist |
 | **Santiago Joaquín Mozo** | Data Scientist |
 | **José Ramírez Montoya** | Data Scientist |
 | **Manuel Eduardo Tobar Barreto** | Data Scientist |
+| **Alejandro Carrillo Vásquez** | Data Scientist |
 
 <p align="center">
   <strong>DAVA - Financial & Data Consulting</strong>
@@ -491,10 +491,10 @@ print(f"Probabilidad: {probability:.2%}")
 
 | Nombre | GitHub | LinkedIn |
 |--------|--------|----------|
-| Alejandro Carrillo Vázquez | [@Tomsakoch0605](https://github.com/Tomsakoch0605) | [LinkedIn](https://linkedin.com/michel-alejandro-carrillo-vázquez-93658977) |
-| Santiago Joaquín Mozo | [@SJMozo](https://github.com/SJMozo) | [LinkedIn](https://linkedin.com/santiago-joaquín-m-83323a37a) |
-| José Ramírez Montoya | [@JoseMontoya21](https://github.com/JoseMontoya21) | [LinkedIn](https://linkedin.com/jose-montoya-03696321a) |
-| Manuel Eduardo Tobar Barreto | [@Mtobar23](https://github.com/Mtobar23) | [LinkedIn](https://linkedin.com/manueltobar) |
+| Alejandro Carrillo Vázquez | [@Tomsakoch0605](https://github.com/Tomsakoch0605) | [LinkedIn](https://www.linkedin.com/in/michel-alejandro-carrillo-vázquez-93658977) |
+| Santiago Joaquín Mozo | [@SJMozo](https://github.com/SJMozo) | [LinkedIn](https://www.linkedin.com/in/santiago-joaquín-m-83323a37a) |
+| José Ramírez Montoya | [@JoseMontoya21](https://github.com/JoseMontoya21) | [LinkedIn](https://www.linkedin.com/in/jose-montoya-03696321a/) |
+| Manuel Eduardo Tobar Barreto | [@Mtobar23](https://github.com/Mtobar23) | [LinkedIn](https://www.linkedin.com/in/manueltobar/) |
 
 📧 **Contacto**: infodatateam@DataVivaConsulting.com
 
