@@ -7,9 +7,7 @@
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-<p align="center">
-  <img src="https://cdn-icons-png.flaticon.com/512/2231/2231692.png" width="120" alt="Olist Logo">
-</p>
+[![OLIST.png](https://i.postimg.cc/RqxzdPRT/OLIST.png)](https://postimg.cc/gLs5kH1w)
 
 Sistema de Machine Learning para predecir si un producto recibirá una reseña positiva (score ≥ 4) en la plataforma de e-commerce brasileña Olist, desarrollado como Proyecto Final del programa **Data Science Full Time 01**.
 
