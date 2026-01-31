@@ -11,7 +11,6 @@
 
 Sistema de Machine Learning para predecir si un producto recibirá una reseña positiva (score ≥ 4) en la plataforma de e-commerce brasileña Olist, desarrollado como Proyecto Final del programa **Data Science Full Time 01**.
 
-![Comparación de Modelos](images/model_comparison.png)
 
 ---
 
@@ -43,7 +42,7 @@ Sistema de Machine Learning para predecir si un producto recibirá una reseña p
 - [Uso](#-uso)
 - [Tecnologías](#-tecnologías)
 - [Conclusiones](#-conclusiones)
-- [Autor](#-autor)
+- [Autor](#-autores)
 
 ---
 
